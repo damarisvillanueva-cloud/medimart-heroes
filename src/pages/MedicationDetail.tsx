@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import QuantitySelector from "@/components/QuantitySelector";
 import medicationsIcon from "@/assets/medications-icon.jpg";
 import { 
   Package, 
@@ -58,6 +59,7 @@ const MedicationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isReserving, setIsReserving] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   const medication = mockMedications.find(med => med.id === id) || mockMedications[0];
 
@@ -66,10 +68,14 @@ const MedicationDetail = () => {
     // Simulate reservation
     setTimeout(() => {
       setIsReserving(false);
-      navigate(`/confirmacion/${id}`);
-      toast.success("Medicamento apartado exitosamente");
+      navigate(`/confirmacion/${id}`, { state: { quantity } });
+      toast.success(`${quantity} unidad${quantity > 1 ? 'es' : ''} apartada${quantity > 1 ? 's' : ''}`);
     }, 1500);
   };
+
+  const totalPrice = medication.discountPrice 
+    ? medication.discountPrice * quantity 
+    : medication.price * quantity;
 
   const getStatusInfo = () => {
     if (medication.status === "available") {
@@ -183,11 +189,24 @@ const MedicationDetail = () => {
                     <CardTitle>Información de compra</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {/* Quantity Selector */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Cantidad:</span>
+                        <QuantitySelector
+                          quantity={quantity}
+                          onQuantityChange={setQuantity}
+                          maxQuantity={medication.stock}
+                        />
+                      </div>
+                      <Separator />
+                    </div>
+
                     <div>
                       {medication.discountPrice ? (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Precio regular:</span>
+                            <span className="text-sm text-muted-foreground">Precio unitario:</span>
                             <span className="text-sm text-muted-foreground line-through">
                               ${medication.price.toFixed(2)}
                             </span>
@@ -198,23 +217,35 @@ const MedicationDetail = () => {
                               Ahorra {medication.discount}%
                             </Badge>
                           </div>
-                          <Separator />
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold">Precio con descuento:</span>
-                            <span className="text-3xl font-bold text-primary">
+                            <span className="text-sm text-muted-foreground">Precio con descuento:</span>
+                            <span className="text-lg font-semibold text-primary">
                               ${medication.discountPrice.toFixed(2)}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Ahorras ${(medication.price - medication.discountPrice).toFixed(2)}
-                          </p>
+                          <Separator />
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-lg">Total a pagar:</span>
+                            <span className="text-3xl font-bold text-primary">
+                              ${totalPrice.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">Precio:</span>
-                          <span className="text-3xl font-bold text-foreground">
-                            ${medication.price.toFixed(2)}
-                          </span>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Precio unitario:</span>
+                            <span className="text-lg font-semibold">
+                              ${medication.price.toFixed(2)}
+                            </span>
+                          </div>
+                          <Separator />
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-lg">Total a pagar:</span>
+                            <span className="text-3xl font-bold text-foreground">
+                              ${totalPrice.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>

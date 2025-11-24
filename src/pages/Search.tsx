@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import QuantitySelector from "@/components/QuantitySelector";
 import { Search as SearchIcon, Package, AlertCircle, CheckCircle2, TrendingDown } from "lucide-react";
+import { toast } from "sonner";
 
 // Mock data
 const mockMedications = [
@@ -58,8 +60,10 @@ const mockMedications = [
 
 const Search = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [filteredMedications, setFilteredMedications] = useState(mockMedications);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const query = searchParams.get("q");
@@ -90,6 +94,18 @@ const Search = () => {
     } else {
       return <Badge variant="destructive">Agotado</Badge>;
     }
+  };
+
+  const getQuantity = (medId: string) => quantities[medId] || 1;
+
+  const setQuantity = (medId: string, quantity: number) => {
+    setQuantities(prev => ({ ...prev, [medId]: quantity }));
+  };
+
+  const handleReserve = (medId: string, medName: string) => {
+    const quantity = getQuantity(medId);
+    toast.success(`${quantity} unidad${quantity > 1 ? 'es' : ''} apartada${quantity > 1 ? 's' : ''}`);
+    navigate(`/confirmacion/${medId}`, { state: { quantity } });
   };
 
   return (
@@ -176,6 +192,17 @@ const Search = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
+                      {med.status !== "out" && (
+                        <div className="mb-4 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="text-sm font-medium">Cantidad:</span>
+                          <QuantitySelector
+                            quantity={getQuantity(med.id)}
+                            onQuantityChange={(qty) => setQuantity(med.id, qty)}
+                            maxQuantity={med.stock}
+                          />
+                        </div>
+                      )}
+                      
                       <div className="flex items-center gap-3">
                         <Link to={`/medicamento/${med.id}`} className="flex-1">
                           <Button variant="outline" className="w-full">
@@ -183,11 +210,12 @@ const Search = () => {
                           </Button>
                         </Link>
                         {med.status !== "out" && (
-                          <Link to={`/medicamento/${med.id}`} className="flex-1">
-                            <Button className="w-full">
-                              Apartar medicamento
-                            </Button>
-                          </Link>
+                          <Button 
+                            className="flex-1"
+                            onClick={() => handleReserve(med.id, med.name)}
+                          >
+                            Apartar medicamento
+                          </Button>
                         )}
                       </div>
                       
