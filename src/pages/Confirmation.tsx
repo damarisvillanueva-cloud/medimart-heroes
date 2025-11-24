@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +18,16 @@ import {
 
 const Confirmation = () => {
   const { id } = useParams();
+  const location = useLocation();
+  const quantity = location.state?.quantity || 1;
   
   // Mock data
+  const unitPrice = 35.00;
   const reservation = {
     code: "MED-2024-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
     medication: "Paracetamol 500mg",
-    quantity: 1,
-    price: 35.00,
+    quantity: quantity,
+    price: unitPrice * quantity,
     validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString('es-MX', {
       day: 'numeric',
       month: 'long',
