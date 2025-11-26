@@ -66,7 +66,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          © 2024 Farmacia Medimart "Héroes". Todos los derechos reservados.
+          © 2025 Farmacia Medimart "Héroes". Todos los derechos reservados.
         </div>
       </div>
     </footer>
