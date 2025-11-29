@@ -10,6 +10,8 @@ import Search from "./pages/Search";
 import MedicationDetail from "./pages/MedicationDetail";
 import Confirmation from "./pages/Confirmation";
 import NotFound from "./pages/NotFound";
+import CartPage from "./pages/CartPage";
+import { CartProvider } from "./context/CartContext";
 
 const queryClient = new QueryClient();
 
@@ -19,16 +21,19 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Register />} />
-          <Route path="/buscar" element={<Search />} />
-          <Route path="/medicamento/:id" element={<MedicationDetail />} />
-          <Route path="/confirmacion/:id" element={<Confirmation />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <CartProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/registro" element={<Register />} />
+            <Route path="/buscar" element={<Search />} />
+            <Route path="/medicamento/:id" element={<MedicationDetail />} />
+            <Route path="/carrito" element={<CartPage />} />
+            <Route path="/confirmacion/:id" element={<Confirmation />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </CartProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

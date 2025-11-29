@@ -19,15 +19,20 @@ import {
 const Confirmation = () => {
   const { id } = useParams();
   const location = useLocation();
-  const quantity = location.state?.quantity || 1;
-  
-  // Mock data
-  const unitPrice = 35.00;
-  const reservation = {
+
+  const items = (location.state as any)?.items || [];
+  const totalGeneral = (location.state as any)?.totalGeneral as number | undefined;
+  const codigoPedido = (location.state as any)?.codigoPedido as string | undefined;
+
+  const quantityFromDetail = (location.state as any)?.quantity || 1;
+
+  const unitPrice = 35.0;
+
+  const singleReservation = {
     code: "MED-2024-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
     medication: "Paracetamol 500mg",
-    quantity: quantity,
-    price: unitPrice * quantity,
+    quantity: quantityFromDetail,
+    price: unitPrice * quantityFromDetail,
     validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString('es-MX', {
       day: 'numeric',
       month: 'long',
@@ -53,10 +58,10 @@ const Confirmation = () => {
     if (navigator.share) {
       navigator.share({
         title: 'Reserva de medicamento',
-        text: `Código de reserva: ${reservation.code}`,
+        text: `Código de reserva: ${codigoPedido || singleReservation.code}`,
       });
     } else {
-      alert("Código copiado al portapapeles: " + reservation.code);
+      alert("Código copiado al portapapeles: " + (codigoPedido || singleReservation.code));
     }
   };
 
@@ -74,9 +79,9 @@ const Confirmation = () => {
                   <CheckCircle2 className="h-10 w-10 text-success" />
                 </div>
               </div>
-              <h1 className="text-3xl font-bold text-foreground">¡Medicamento apartado!</h1>
+              <h1 className="text-3xl font-bold text-foreground">¡Pedido confirmado!</h1>
               <p className="text-lg text-muted-foreground">
-                Tu medicamento está reservado y listo para recoger en farmacia
+                Tu pedido está reservado y listo para recoger en farmacia
               </p>
             </div>
 
@@ -103,7 +108,7 @@ const Confirmation = () => {
                 <div className="text-center space-y-2">
                   <p className="text-sm text-muted-foreground">Código de reserva:</p>
                   <Badge variant="outline" className="text-lg py-2 px-4 font-mono">
-                    {reservation.code}
+                    {codigoPedido || singleReservation.code}
                   </Badge>
                 </div>
 
@@ -127,20 +132,50 @@ const Confirmation = () => {
                 <CardTitle>Detalles de tu reserva</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Medicamento:</span>
-                  <span className="font-semibold">{reservation.medication}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Cantidad:</span>
-                  <span className="font-semibold">{reservation.quantity}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total a pagar:</span>
-                  <span className="font-semibold text-primary text-xl">
-                    ${reservation.price.toFixed(2)}
-                  </span>
-                </div>
+                {items.length > 0 ? (
+                  <>
+                    {items.map((item: any) => (
+                      <div key={item.idMedicamento} className="space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Medicamento:</span>
+                          <span className="font-semibold">{item.nombre}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Cantidad:</span>
+                          <span className="font-semibold">{item.cantidad}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Subtotal:</span>
+                          <span className="font-semibold">${item.subtotal.toFixed(2)}</span>
+                        </div>
+                        <Separator />
+                      </div>
+                    ))}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground font-semibold">Total a pagar:</span>
+                      <span className="font-semibold text-primary text-xl">
+                        ${(totalGeneral ?? 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Medicamento:</span>
+                      <span className="font-semibold">{singleReservation.medication}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cantidad:</span>
+                      <span className="font-semibold">{singleReservation.quantity}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total a pagar:</span>
+                      <span className="font-semibold text-primary text-xl">
+                        ${singleReservation.price.toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
                 
                 <Separator />
 
@@ -148,7 +183,7 @@ const Confirmation = () => {
                   <Clock className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-semibold">Válido hasta:</p>
-                    <p className="text-muted-foreground">{reservation.validUntil}</p>
+                    <p className="text-muted-foreground">{singleReservation.validUntil}</p>
                   </div>
                 </div>
 
@@ -171,19 +206,19 @@ const Confirmation = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-2">{reservation.pharmacy.name}</h3>
+                  <h3 className="font-semibold mb-2">{singleReservation.pharmacy.name}</h3>
                   <div className="space-y-2 text-sm text-muted-foreground">
                     <div className="flex items-start gap-2">
                       <MapPin className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-                      <span>{reservation.pharmacy.address}</span>
+                      <span>{singleReservation.pharmacy.address}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>{reservation.pharmacy.phone}</span>
+                      <span>{singleReservation.pharmacy.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>{reservation.pharmacy.hours}</span>
+                      <span>{singleReservation.pharmacy.hours}</span>
                     </div>
                   </div>
                 </div>

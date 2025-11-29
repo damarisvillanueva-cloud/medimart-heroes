@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
   Info
 } from "lucide-react";
 import { toast } from "sonner";
+import { useCart } from "@/context/CartContext";
 
 // Mock data - same as Search page
 const mockMedications = [
@@ -57,20 +58,33 @@ const mockMedications = [
 
 const MedicationDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const [isReserving, setIsReserving] = useState(false);
+  const { addItem } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
   const medication = mockMedications.find(med => med.id === id) || mockMedications[0];
 
-  const handleReserve = () => {
-    setIsReserving(true);
-    // Simulate reservation
+  const handleAddToCart = () => {
+    if (quantity <= 0) return;
+
+    if (quantity > medication.stock) {
+      toast.error("No hay suficiente stock disponible para esa cantidad.");
+      return;
+    }
+
+    setIsAdding(true);
     setTimeout(() => {
-      setIsReserving(false);
-      navigate(`/confirmacion/${id}`, { state: { quantity } });
-      toast.success(`${quantity} unidad${quantity > 1 ? 'es' : ''} apartada${quantity > 1 ? 's' : ''}`);
-    }, 1500);
+      addItem({
+        idMedicamento: medication.id,
+        nombre: medication.name,
+        precioUnitario: medication.discountPrice ?? medication.price,
+        cantidad: quantity,
+        stockDisponible: medication.stock,
+      });
+
+      toast.success(`${quantity} unidad${quantity > 1 ? 'es' : ''} agregada${quantity > 1 ? 's' : ''} al carrito`);
+      setIsAdding(false);
+    }, 300);
   };
 
   const totalPrice = medication.discountPrice 
@@ -267,10 +281,10 @@ const MedicationDetail = () => {
                       <Button 
                         className="w-full" 
                         size="lg"
-                        onClick={handleReserve}
-                        disabled={isReserving}
+                        onClick={handleAddToCart}
+                        disabled={isAdding || medication.stock === 0}
                       >
-                        {isReserving ? "Apartando..." : "Apartar medicamento"}
+                        {isAdding ? "Agregando..." : "Agregar al carrito"}
                       </Button>
                     ) : (
                       <div className="space-y-2">
