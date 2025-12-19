@@ -58,16 +58,19 @@ const mockMedications = [
 
 const MedicationDetail = () => {
   const { id } = useParams();
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
   const medication = mockMedications.find(med => med.id === id) || mockMedications[0];
 
+  const cartItem = items.find(item => item.idMedicamento === medication.id);
+  const remainingStock = Math.max(medication.stock - (cartItem?.cantidad ?? 0), 0);
+
   const handleAddToCart = () => {
     if (quantity <= 0) return;
 
-    if (quantity > medication.stock) {
+    if (quantity > remainingStock) {
       toast.error("No hay suficiente stock disponible para esa cantidad.");
       return;
     }
@@ -95,14 +98,14 @@ const MedicationDetail = () => {
     if (medication.status === "available") {
       return {
         icon: <CheckCircle2 className="h-5 w-5" />,
-        text: `${medication.stock} unidades disponibles`,
+        text: `${remainingStock} unidades disponibles`,
         variant: "default" as const,
         className: "bg-success"
       };
     } else if (medication.status === "low") {
       return {
         icon: <AlertTriangle className="h-5 w-5" />,
-        text: `¡Últimas ${medication.stock} unidades!`,
+        text: `¡Últimas ${remainingStock} unidades!`,
         variant: "default" as const,
         className: "bg-warning"
       };
@@ -210,7 +213,7 @@ const MedicationDetail = () => {
                         <QuantitySelector
                           quantity={quantity}
                           onQuantityChange={setQuantity}
-                          maxQuantity={medication.stock}
+                          maxQuantity={remainingStock || 1}
                         />
                       </div>
                       <Separator />
@@ -277,12 +280,12 @@ const MedicationDetail = () => {
                       </div>
                     </div>
 
-                    {medication.status !== "out" ? (
+                    {medication.status !== "out" && remainingStock > 0 ? (
                       <Button 
                         className="w-full" 
                         size="lg"
                         onClick={handleAddToCart}
-                        disabled={isAdding || medication.stock === 0}
+                        disabled={isAdding || remainingStock === 0}
                       >
                         {isAdding ? "Agregando..." : "Agregar al carrito"}
                       </Button>

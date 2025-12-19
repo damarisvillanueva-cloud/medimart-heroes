@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import QuantitySelector from "@/components/QuantitySelector";
 import { Search as SearchIcon, Package, AlertCircle, CheckCircle2, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
+import { useCart } from "@/context/CartContext";
 
 // Mock data
 const mockMedications = [
@@ -60,10 +61,10 @@ const mockMedications = [
 
 const Search = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [filteredMedications, setFilteredMedications] = useState(mockMedications);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const { addItem, items } = useCart();
 
   useEffect(() => {
     const query = searchParams.get("q");
@@ -86,14 +87,21 @@ const Search = () => {
     setFilteredMedications(filtered);
   };
 
-  const getStatusBadge = (status: string, stock: number) => {
-    if (status === "available") {
-      return <Badge variant="default" className="bg-success">{stock} disponibles</Badge>;
-    } else if (status === "low") {
-      return <Badge variant="default" className="bg-warning">¡Últimas {stock} unidades!</Badge>;
-    } else {
+  const getStatusBadge = (status: string, remainingStock: number) => {
+    if (remainingStock <= 0 || status === "out") {
       return <Badge variant="destructive">Agotado</Badge>;
     }
+
+    if (status === "low" || remainingStock <= 10) {
+      return <Badge variant="default" className="bg-warning">¡Últimas {remainingStock} unidades!</Badge>;
+    }
+
+    return <Badge variant="default" className="bg-success">{remainingStock} disponibles</Badge>;
+  };
+
+  const getRemainingStock = (med: (typeof mockMedications)[number]) => {
+    const cartItem = items.find(item => item.idMedicamento === med.id);
+    return Math.max(med.stock - (cartItem?.cantidad ?? 0), 0);
   };
 
   const getQuantity = (medId: string) => quantities[medId] || 1;
@@ -102,10 +110,26 @@ const Search = () => {
     setQuantities(prev => ({ ...prev, [medId]: quantity }));
   };
 
-  const handleReserve = (medId: string, medName: string) => {
-    const quantity = getQuantity(medId);
-    toast.success(`${quantity} unidad${quantity > 1 ? 'es' : ''} apartada${quantity > 1 ? 's' : ''}`);
-    navigate(`/confirmacion/${medId}`, { state: { quantity } });
+  const handleAddToCart = (med: (typeof mockMedications)[number]) => {
+    const quantity = getQuantity(med.id);
+    const remainingStock = getRemainingStock(med);
+
+    if (quantity <= 0) return;
+
+    if (quantity > remainingStock) {
+      toast.error("No hay suficiente stock disponible para esa cantidad.");
+      return;
+    }
+
+    addItem({
+      idMedicamento: med.id,
+      nombre: med.name,
+      precioUnitario: med.discountPrice ?? med.price,
+      cantidad: quantity,
+      stockDisponible: remainingStock,
+    });
+
+    toast.success(`${quantity} unidad${quantity > 1 ? 'es' : ''} agregada${quantity > 1 ? 's' : ''} al carrito`);
   };
 
   return (
@@ -154,80 +178,84 @@ const Search = () => {
                   </CardContent>
                 </Card>
               ) : (
-                filteredMedications.map((med) => (
-                  <Card key={med.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <CardTitle className="text-xl">{med.name}</CardTitle>
-                          <CardDescription>{med.description}</CardDescription>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{med.category}</Badge>
-                            {getStatusBadge(med.status, med.stock)}
+                filteredMedications.map((med) => {
+                  const remainingStock = getRemainingStock(med);
+
+                  return (
+                    <Card key={med.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2 flex-1">
+                            <CardTitle className="text-xl">{med.name}</CardTitle>
+                            <CardDescription>{med.description}</CardDescription>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">{med.category}</Badge>
+                              {getStatusBadge(med.status, remainingStock)}
+                            </div>
+                          </div>
+                          
+                          <div className="text-right space-y-2">
+                            {med.discountPrice ? (
+                              <>
+                                <div className="flex items-center gap-2 justify-end">
+                                  <span className="text-sm text-muted-foreground line-through">
+                                    ${med.price.toFixed(2)}
+                                  </span>
+                                  <Badge variant="default" className="bg-success gap-1">
+                                    <TrendingDown className="h-3 w-3" />
+                                    {med.discount}% OFF
+                                  </Badge>
+                                </div>
+                                <div className="text-2xl font-bold text-primary">
+                                  ${med.discountPrice.toFixed(2)}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-2xl font-bold text-foreground">
+                                ${med.price.toFixed(2)}
+                              </div>
+                            )}
                           </div>
                         </div>
+                      </CardHeader>
+                      <CardContent>
+                        {med.status !== "out" && remainingStock > 0 && (
+                          <div className="mb-4 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                            <span className="text-sm font-medium">Cantidad:</span>
+                            <QuantitySelector
+                              quantity={getQuantity(med.id)}
+                              onQuantityChange={(qty) => setQuantity(med.id, qty)}
+                              maxQuantity={remainingStock || 1}
+                            />
+                          </div>
+                        )}
                         
-                        <div className="text-right space-y-2">
-                          {med.discountPrice ? (
-                            <>
-                              <div className="flex items-center gap-2 justify-end">
-                                <span className="text-sm text-muted-foreground line-through">
-                                  ${med.price.toFixed(2)}
-                                </span>
-                                <Badge variant="default" className="bg-success gap-1">
-                                  <TrendingDown className="h-3 w-3" />
-                                  {med.discount}% OFF
-                                </Badge>
-                              </div>
-                              <div className="text-2xl font-bold text-primary">
-                                ${med.discountPrice.toFixed(2)}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="text-2xl font-bold text-foreground">
-                              ${med.price.toFixed(2)}
-                            </div>
+                        <div className="flex items-center gap-3">
+                          <Link to={`/medicamento/${med.id}`} className="flex-1">
+                            <Button variant="outline" className="w-full">
+                              Ver detalles
+                            </Button>
+                          </Link>
+                          {med.status !== "out" && remainingStock > 0 && (
+                            <Button 
+                              className="flex-1"
+                              onClick={() => handleAddToCart(med)}
+                            >
+                              Agregar al carrito
+                            </Button>
                           )}
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {med.status !== "out" && (
-                        <div className="mb-4 flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <span className="text-sm font-medium">Cantidad:</span>
-                          <QuantitySelector
-                            quantity={getQuantity(med.id)}
-                            onQuantityChange={(qty) => setQuantity(med.id, qty)}
-                            maxQuantity={med.stock}
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-3">
-                        <Link to={`/medicamento/${med.id}`} className="flex-1">
-                          <Button variant="outline" className="w-full">
-                            Ver detalles
-                          </Button>
-                        </Link>
-                        {med.status !== "out" && (
-                          <Button 
-                            className="flex-1"
-                            onClick={() => handleReserve(med.id, med.name)}
-                          >
-                            Apartar medicamento
-                          </Button>
+                        
+                        {(med.status === "out" || remainingStock === 0) && (
+                          <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
+                            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <p>Este medicamento está agotado. Regístrate para recibir una notificación cuando vuelva a estar disponible.</p>
+                          </div>
                         )}
-                      </div>
-                      
-                      {med.status === "out" && (
-                        <div className="mt-3 flex items-start gap-2 text-sm text-muted-foreground">
-                          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                          <p>Este medicamento está agotado. Regístrate para recibir una notificación cuando vuelva a estar disponible.</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </div>

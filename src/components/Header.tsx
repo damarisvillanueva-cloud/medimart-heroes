@@ -1,14 +1,11 @@
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Pill, ShoppingCart, User } from "lucide-react";
 
 const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-16 items-center justify-center gap-8">
         <Link to="/" className="flex items-center gap-2">
-          <Pill className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold text-foreground">Farmacia Medimart <span className="text-primary">"Héroes"</span></span>
+          <span className="text-xl font-bold text-foreground">Clyra</span>
         </Link>
         
         <nav className="hidden md:flex items-center gap-6">
@@ -24,25 +21,10 @@ const Header = () => {
           <Link to="/contacto" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             Contacto
           </Link>
+          <Link to="/carrito" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            Carrito
+          </Link>
         </nav>
-
-        <div className="flex items-center gap-3">
-          <Link to="/carrito">
-            <Button variant="outline" size="sm" className="gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              Carrito
-            </Button>
-          </Link>
-          <Link to="/login">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <User className="h-4 w-4" />
-              Iniciar sesión
-            </Button>
-          </Link>
-          <Link to="/registro">
-            <Button size="sm">Registrarse</Button>
-          </Link>
-        </div>
       </div>
     </header>
   );
