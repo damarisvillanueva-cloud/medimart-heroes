@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ShoppingCart } from "lucide-react";
 
 const Header = () => {
   return (
@@ -21,8 +22,11 @@ const Header = () => {
           <Link to="/contacto" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
             Contacto
           </Link>
-          <Link to="/carrito" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-            Carrito
+          <Link
+            to="/carrito"
+            className="flex items-center justify-center text-primary hover:text-primary/80 transition-colors"
+          >
+            <ShoppingCart className="h-5 w-5" />
           </Link>
         </nav>
       </div>
